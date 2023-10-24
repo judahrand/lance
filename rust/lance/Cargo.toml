@@ -79,6 +79,7 @@ tracing = { workspace = true }
 lazy_static = { workspace = true }
 base64 = "0.21.4"
 async_cell = "0.2.2"
+bitrush-index = "0.1.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 accelerate-src = { version = "0.3.2", optional = true }

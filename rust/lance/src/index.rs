@@ -27,6 +27,7 @@ pub(crate) mod append;
 pub(crate) mod cache;
 pub(crate) mod prefilter;
 pub mod vector;
+pub mod bitmap;
 
 use crate::dataset::transaction::{Operation, Transaction};
 use crate::format::Index as IndexMetadata;
@@ -37,6 +38,7 @@ use crate::{dataset::Dataset, Error, Result};
 pub use lance_index::pb;
 
 use self::vector::{build_vector_index, VectorIndexParams};
+use self::bitmap::{build_bitmap_index, BitmapIndexParams};
 
 /// Trait of a secondary index.
 pub(crate) trait Index: Send + Sync {
@@ -51,6 +53,7 @@ pub(crate) trait Index: Send + Sync {
 /// Index Type
 pub enum IndexType {
     // Preserve 0-100 for simple indices.
+    Bitmap = 0,
 
     // 100+ and up for vector index.
     /// Flat vector index.
@@ -61,6 +64,7 @@ impl fmt::Display for IndexType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Vector => write!(f, "Vector"),
+            Self::Bitmap => write!(f, "Bitmap"),
         }
     }
 }
@@ -202,6 +206,16 @@ impl DatasetIndexExt for Dataset {
                     })?;
 
                 build_vector_index(self, column, &index_name, &index_id.to_string(), vec_params)
+                    .await?;
+            }
+            IndexType::Bitmap => {
+                let bitmap_params = params
+                    .as_any()
+                    .downcast_ref::<BitmapIndexParams>()
+                    .ok_or_else(|| Error::Index {
+                        message: "Bitmap index type must take a BitmapIndexParams".to_string(),
+                    })?;
+                build_bitmap_index(self, column, &index_name, &index_id.to_string(), bitmap_params)
                     .await?;
             }
         }
